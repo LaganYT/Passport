@@ -1,0 +1,13 @@
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "passport"
+    {
+      "install_path" "."
+      "display_name" "Passport (Linux engine)"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}

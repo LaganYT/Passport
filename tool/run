@@ -1,0 +1,119 @@
+#!/bin/bash
+# Passport, a Steam compatibility tool for macOS. Steam starts a Windows game through this script; it runs the game in
+# Voile's Linux engine, where Wine sees Linux and Easy Anti-Cheat loads its Linux module, and Wine's steamclient
+# talks to the Steam that started it.
+set -eu
+
+verb=${1:-}
+case $verb in
+getcompatpath) printf '%s\n' "$STEAM_COMPAT_DATA_PATH"; exit 0 ;;
+waitforexitandrun | run) shift ;;
+*) exit 1 ;;
+esac
+
+tool=$(cd "$(dirname "$0")" && pwd)
+support="$HOME/Library/Application Support/Passport"
+runtime="$support/runtime"
+steam="$support/steam"
+data=$STEAM_COMPAT_DATA_PATH
+home="$data/passport"
+prefix="$home/prefix"
+install=${STEAM_COMPAT_INSTALL_PATH%/}
+log="$data/passport-run.log"
+
+mkdir -p "$home"
+exec > "$log" 2>&1
+echo "=== passport $(date) ==="
+echo "verb=$verb cwd=$PWD install=$install app=${STEAM_COMPAT_APP_ID:-}"
+printf 'arg: %s\n' "$@"
+
+fail() {
+    echo "=== passport: $1 ==="
+    osascript -e 'on run {m}' -e 'display alert "Passport could not start the game" message m as critical' -e 'end run' "$1" >/dev/null 2>&1 &
+    exit 1
+}
+
+[ -x "$runtime/engine/fexdarwin-run" ] || fail "The Voile runtime is not installed. Run install.sh again."
+[ $# -gt 0 ] || fail "Steam gave no program to run."
+
+# 0x14c in the PE header is a 32-bit program.
+is_32bit() { [ "$(od -An -tx2 -j$(($(od -An -tu4 -j60 -N4 "$1") + 4)) -N2 "$1" | tr -d ' ')" = 014c ]; }
+
+# The guest sees the installation at /opt/game; everything Steam passes is a Mac path inside it.
+guest_path() {
+    case $1 in
+    "$install") echo /opt/game ;;
+    "$install"/*) echo "/opt/game/${1#"$install"/}" ;;
+    *) return 1 ;;
+    esac
+}
+# Steam runs the game's install script (redistributables) first. Wine has nothing to install.
+case $1 in */legacycompat/iscriptevaluator.exe) echo "=== skipping the install script ==="; exit 0 ;; esac
+# Voile's Wine runs 64-bit programs only. A game's 32-bit launcher (VRChat's launch.exe) just starts the game through
+# Easy Anti-Cheat's 64-bit start_protected_game.exe beside it, so start that.
+if is_32bit "$1" && [ -f "${1%/*}/start_protected_game.exe" ]; then
+    echo "=== $1 is 32-bit, starting start_protected_game.exe instead ==="
+    set -- "${1%/*}/start_protected_game.exe" "${@:2}"
+fi
+exe=$(guest_path "$1") || fail "$1 is outside the game's folder."
+shift
+cwd=$(guest_path "$PWD") || cwd=/opt/game
+
+# lsteamclient loads the Linux steamclient that .steam/sdk64 leads to; the guest sees the link's target in /opt/steam.
+"$tool/steamclient.sh" || echo "=== passport: the Linux steamclient may not match this Steam ==="
+[ -f "$steam/linux64/steamclient.so" ] || fail "The Linux steamclient is missing. Run install.sh again."
+mkdir -p "$home/.steam"
+ln -sfn /opt/steam/linux64 "$home/.steam/sdk64"
+
+guest_env=(
+    HOME=/home/user USER=user LOGNAME=user
+    PATH=/opt/wine/bin:/usr/bin:/bin
+    LANG=en_US.UTF-8
+    WINEPREFIX=/home/user/prefix WINEARCH=win64 WINEDEBUG=fixme-all
+    'WINEDLLOVERRIDES=mscoree,mshtml=;winemenubuilder.exe=d;d3d11,dxgi,d3d12=n'
+    VTEST_SOCKET_NAME=/run/obelisk/vtest.sock NPT_DEBUG=force_vtest
+)
+env_args=()
+for entry in "${guest_env[@]}"; do env_args+=(--env "$entry"); done
+
+# /opt/obelisk is bound at launch only: the runtime's root preloads steam-hostpid.so from there, so the prefix boot
+# prints a harmless "cannot be preloaded" per process.
+# The prefix is made on the game's first launch, which takes about a minute.
+if [ ! -f "$prefix/system.reg" ]; then
+    echo "=== creating the prefix ==="
+    env -i PATH=/usr/bin:/bin FEXDARWIN_LKD=1 FEXDARWIN_ROOT="$runtime/root" FEXDARWIN_ROOT_RO=1 \
+        FEXDARWIN_BIND="/opt/wine=$runtime/wine:ro;/home/user=$home" \
+        "$runtime/engine/run-with-timeout.sh" 600 "$runtime/engine/fexdarwin-run" --cwd /home/user "${env_args[@]}" \
+        /bin/sh -c '/opt/wine/bin/wine wineboot --init; /opt/wine/bin/wineserver -w' < /dev/null
+    [ -f "$prefix/system.reg" ] || fail "Wine could not create the game's prefix."
+fi
+
+# Valve's Windows steamclient libraries are where the prefix's registry points steam_api, and Neptune's Direct3D
+# replaces Wine's.
+steam_dir="$prefix/drive_c/Program Files (x86)/Steam"
+mkdir -p "$steam_dir"
+for name in steamclient.dll steamclient64.dll; do
+    cmp -s "$steam/$name" "$steam_dir/$name" || cp "$steam/$name" "$steam_dir/$name"
+done
+for name in d3d11.dll dxgi.dll d3d12.dll; do
+    cmp -s "$runtime/windows/$name" "$prefix/drive_c/windows/system32/$name" ||
+        cp "$runtime/windows/$name" "$prefix/drive_c/windows/system32/$name"
+done
+
+# What steam_api and lsteamclient read from the game's session.
+pass=(SteamAppId SteamGameId SteamOS Steam3Master SteamClientService)
+host_env=()
+launch_args=()
+for name in "${pass[@]}"; do
+    [ -n "${!name+set}" ] || continue
+    host_env+=("$name=${!name}")
+    launch_args+=(--pass "$name")
+done
+
+echo "=== starting $exe ==="
+exec env -i HOME="$HOME" TMPDIR="${TMPDIR:-/tmp}" PATH=/usr/bin:/bin \
+    OBELISK_APP_NAME="$(basename "$install")" ${host_env[@]+"${host_env[@]}"} \
+    /bin/bash "$tool/launch.sh" "$runtime" "$home" "$install" "$cwd" --graphics dxmt \
+    --bind "/opt/steam=$steam:ro" --bind "/opt/obelisk=$runtime/guest:ro" \
+    "${env_args[@]}" ${launch_args[@]+"${launch_args[@]}"} \
+    -- 'C:\windows\system32\steam.exe' "$exe" "$@"

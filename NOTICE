@@ -1,0 +1,18 @@
+Passport runs games in software it does not include; install.sh downloads it:
+
+- Voile, https://github.com/Zagrios/voile (runtime release, mirrored unchanged as an asset of this repo's
+  voile-v26.3.0-16 release, including voile-lkd, FEX, DXMT, CrossOver's Wine and
+  Valve's steamclient libraries, each under its own license, listed in the runtime's licenses folder).
+- Valve's Linux steamclient, from Valve's Steam client update servers.
+
+tool/launch.sh is Obelisk's launch.sh, https://github.com/Zagrios/Obelisk (GPL-3.0).
+
+hook/ is forked from the dylib of NotProton, https://github.com/NotProtonNot/NotProton (GPL-3.0), by NotProtonNot
+and its contributors: the loader, signature resolver, hooks, web UI routes, patches to Steam's compatibility UI and the
+signature databases in hook/signatures. The tool layout follows NotProton too.
+
+hook/vendor/dobby is Dobby, https://github.com/jmpews/Dobby (Apache-2.0, license in that folder), unmodified at commit
+5dfc8546954ce3b3198132ab13fddb89ee92cdd7 without its docs and tests. hook/build.sh builds it into the hook.
+
+hook/vendor/cJSON.c and cJSON.h are cJSON (MIT), Copyright (c) 2009-2017 Dave Gamble and cJSON contributors. The
+license is in the head of each file.

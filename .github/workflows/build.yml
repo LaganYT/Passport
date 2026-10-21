@@ -1,0 +1,26 @@
+name: build
+on:
+  pull_request:
+  release:
+    types: [published]
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install cmake
+      - run: gui/build.sh "$RUNNER_TEMP/gui"
+      - run: bash -n install.sh && bash -n uninstall.sh && bash -n tool/run && bash -n tool/steamclient.sh
+      - name: Zip the app
+        run: ditto -c -k --keepParent "$RUNNER_TEMP/gui/Passport.app" Passport.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Passport
+          path: Passport.zip
+      - name: Attach it to the release
+        if: github.event_name == 'release'
+        run: gh release upload "${{ github.event.release.tag_name }}" Passport.zip --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
