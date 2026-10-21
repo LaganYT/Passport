@@ -27,11 +27,11 @@ so a 32-bit launcher can't start. If the 64-bit `start_protected_game.exe` sits 
 You need a Mac with Apple silicon and Steam for macOS in `/Applications`.
 
 1. Download `Passport.zip` from the latest release and unzip it.
-2. Right-click `Passport.app` and choose Open. The app isn't notarized, so macOS blocks a plain double-click.
+2. Right-click `Passport.app` and choose Open.
 3. Quit Steam and press Install.
 4. Start Steam, open a game's Properties, then Compatibility, and pick "Passport (Linux engine)".
 
-Install downloads Voile (430 MB, 2.4 GB unpacked) and Valve's Linux steamclient, adds the hook to Steam.app and signs it
+Install downloads Voile and Valve's Linux steamclient, adds the hook to Steam.app and signs it
 again. macOS then asks for Steam's input permissions again. Uninstall puts Steam.app back.
 
 A game's first launch builds its prefix, which takes about a minute. `passport-run.log` in the game's `compatdata`
@@ -42,9 +42,9 @@ line tools and `cmake`. `gui/build.sh` builds the app.
 
 ## When Steam updates
 
-The Linux steamclient has to match your Mac's Steam build, or Steam answers "Unknown IPC call" and the game crashes.
-Every launch compares the two and fetches the right client if they differ. Run Install again after a Steam update so the
-hook is signed again.
+The Linux steamclient has to match your Mac's Steam build. 
+Every launch compares the two and fetches the right client if they differ. 
+Run Install again after a Steam update so the hook is signed again.
 
 The hook finds the Steam functions it patches by signature, from NotProton's database in `hook/signatures`. Most Steam
 updates leave them alone. If one moves them, `passport.log` shows how many resolved and nothing is patched until the
@@ -52,7 +52,7 @@ database has that build.
 
 ## Anti-cheat
 
-Passport doesn't bypass or alter any anti-cheat. Easy Anti-Cheat sees Linux and loads its Linux module if the game's
+**Passport doesn't bypass or alter any anti-cheat.** Easy Anti-Cheat sees Linux and loads its Linux module if the game's
 developer made one. The developer can still refuse it, so a game may block protected sessions or ban the account. Use
 Passport at your own risk, and not on games that don't support Linux.
 
