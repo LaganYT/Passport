@@ -20,7 +20,7 @@ Passport is early. I tried three games.
 
 I haven't tried joining a protected session, gamepads, or Steam Cloud saves. Voile's Wine only runs 64-bit programs,
 so a 32-bit launcher can't start. If the 64-bit `start_protected_game.exe` sits beside it, as with VRChat's
-`launch.exe`, Passport starts that instead. A 32-bit anti-cheat bootstrapper, like TABG's, still fails.
+`launch.exe`, Passport starts that instead. A 32-bit anti-cheat bootstrapper still fails.
 
 ## Install
 
