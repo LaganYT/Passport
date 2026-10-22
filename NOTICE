@@ -1,8 +1,7 @@
 Passport runs games in software it does not include; install.sh downloads it:
 
-- Voile, https://github.com/Zagrios/voile (runtime release, mirrored unchanged as an asset of this repo's
-  voile-v26.3.0-16 release, including voile-lkd, FEX, DXMT, CrossOver's Wine and
-  Valve's steamclient libraries, each under its own license, listed in the runtime's licenses folder).
+- Voile, https://github.com/Zagrios/voile (latest runtime release, downloaded from there,
+  including voile-lkd, FEX, DXMT, CrossOver's Wine and Valve's steamclient libraries, each under its own license, listed in the runtime's licenses folder).
 - Valve's Linux steamclient, from Valve's Steam client update servers.
 
 tool/launch.sh is Obelisk's launch.sh, https://github.com/Zagrios/Obelisk (GPL-3.0).

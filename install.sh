@@ -2,11 +2,10 @@
 # Installs Passport: Voile's Linux engine (about 2.4 GB), Valve's Linux steamclient for the Steam on this Mac, the
 # compatibility tool Steam lists as "Passport (Linux engine)", and the hook that turns on Steam Play in the Mac client.
 # Steam has to be closed. The app carries a built hook; from a checkout the hook is built here, which needs the Xcode
-# command line tools and cmake. Run again to update the tool or
-# after Steam updates itself; the runtime is kept. uninstall.sh puts Steam back.
+# command line tools and cmake. Run again to update the tool, pick up a newer Voile
+# or after Steam updates itself; older runtimes are kept. uninstall.sh puts Steam back.
 set -euo pipefail
 
-voile=v26.3.0-16
 support="$HOME/Library/Application Support/Passport"
 tools="$HOME/Library/Application Support/Steam/compatibilitytools.d"
 steam_app=${STEAM_APP:-/Applications/Steam.app}
@@ -30,10 +29,13 @@ if [ -n "$inserted" ] && [ "$inserted" != "$dylib" ]; then
 fi
 mkdir -p "$support"
 
+# Voile's newest release, straight from its repo.
+voile=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/Zagrios/Voile/releases/latest)
+voile=${voile##*/}
 if [ ! -d "$support/voile-$voile" ]; then
     tmp=$(mktemp -d "$support/download.XXXXXX")
     trap 'rm -rf "$tmp"' EXIT
-    url=https://github.com/LaganYT/Passport/releases/download/voile-$voile/voile-$voile.tar.xz
+    url=https://github.com/Zagrios/Voile/releases/download/$voile/voile-$voile.tar.xz
     curl -fSL --progress-bar "$url" -o "$tmp/voile-$voile.tar.xz"
     curl -fsSL "$url.sha256" -o "$tmp/voile.sha256"
     (cd "$tmp" && shasum -a 256 -c voile.sha256)
