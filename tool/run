@@ -36,6 +36,10 @@ fail() {
 [ -x "$runtime/engine/fexdarwin-run" ] || fail "The Voile runtime is not installed. Run install.sh again."
 [ $# -gt 0 ] || fail "Steam gave no program to run."
 
+# With no usable IPv6 route, a game's connect to an IPv6 address never fails: VRChat's API tries one first and waits out two
+# 20 s timeouts before falling back to IPv4. Ask the guest's resolver for IPv4 addresses only.
+grep -q 'no-aaaa' "$runtime/root/etc/resolv.conf" || echo 'options no-aaaa' >> "$runtime/root/etc/resolv.conf"
+
 # 0x14c in the PE header is a 32-bit program.
 is_32bit() { [ "$(od -An -tx2 -j$(($(od -An -tu4 -j60 -N4 "$1") + 4)) -N2 "$1" | tr -d ' ')" = 014c ]; }
 
