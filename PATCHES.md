@@ -7,9 +7,9 @@ Voile release yet. `install.sh` does both. This file says what they are and how 
 | --- | --- | --- | --- |
 | `engine/wsd` | Microphone input for the Linux engine | [voile-lkd #3](https://github.com/Zagrios/voile-lkd/pull/3), merged | [LaganYT/voile-lkd `microphone-input`](https://github.com/LaganYT/voile-lkd/tree/microphone-input) |
 | `wine/lib/wine/x86_64-unix/wineobeliskaudio.so` | Microphone input for Wine | [voile-wine #3](https://github.com/Zagrios/voile-wine/pull/3), merged | [LaganYT/voile-wine `microphone-input`](https://github.com/LaganYT/voile-wine/tree/microphone-input) |
-| `graphics/libexec/virgl_render_server` | Fixes a crash when joining busy VRChat worlds | [neptune #2](https://github.com/Zagrios/neptune/pull/2), open | [LaganYT/neptune `install-v16`](https://github.com/LaganYT/neptune/tree/install-v16), the same patch as the PR on the v16 base |
+| `graphics/libexec/virgl_render_server` | Fixes a crash when joining busy VRChat worlds | [neptune #1](https://github.com/Zagrios/neptune/pull/1), merged (our #2 was closed in favour of it) | [LaganYT/neptune `install-v16`](https://github.com/LaganYT/neptune/tree/install-v16), the same patch as the PR on the v16 base |
 
-The two microphone PRs were merged after Voile `v26.3.0-18`, so no release has them yet. The files here are the
+All three fixes were merged on Oct 23, after Voile `v26.3.0-18`, so no release has them yet. The files here are the
 pre-merge builds: their wsd request number is 29 on both sides, while the merged code uses 34. Never mix one of them with
 a Voile that has the merged microphone code.
 
@@ -20,8 +20,7 @@ one Voile build is not known to work on another. The originals are kept beside t
 
 ## Taking them out
 
-Do this once all three PRs are in a Voile release. The microphone ones are merged, so the next Voile release should have
-them. Check that release's source for neptune #2 as well.
+Do this once a Voile release has all three fixes. They are merged, so the next release should.
 
 1. In `install.sh`, delete the block from `# Microphone input` through its closing `fi`.
 2. Put the newest-release lookup back where `voile=v26.3.0-16` is:
@@ -32,8 +31,7 @@ them. Check that release's source for neptune #2 as well.
 3. Restore the `pick up a newer Voile` line in the header comment of `install.sh`.
 4. Delete this file and the `passport-patches.tar.xz` assets from the release.
 
-If the release has the microphone fix but not neptune #2: keep the block, rebuild the render server on that release,
-and ship an archive with only `graphics/libexec/virgl_render_server`.
+If a release has only some of them: keep the block, and rebuild the archive with just the files that are still missing.
 
 ## Moving to a newer Voile before then
 
