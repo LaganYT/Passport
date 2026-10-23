@@ -2,8 +2,8 @@
 # Installs Passport: Voile's Linux engine (about 2.4 GB), Valve's Linux steamclient for the Steam on this Mac, the
 # compatibility tool Steam lists as "Passport (Linux engine)", and the hook that turns on Steam Play in the Mac client.
 # Steam has to be closed. The app carries a built hook; from a checkout the hook is built here, which needs the Xcode
-# command line tools and cmake. Run again to update the tool, pick up a newer Voile
-# or after Steam updates itself; older runtimes are kept. uninstall.sh puts Steam back.
+# command line tools and cmake. Run again to update the tool or after Steam updates itself; older runtimes are kept.
+# uninstall.sh puts Steam back.
 set -euo pipefail
 
 support="$HOME/Library/Application Support/Passport"
@@ -29,18 +29,32 @@ if [ -n "$inserted" ] && [ "$inserted" != "$dylib" ]; then
 fi
 mkdir -p "$support"
 
-# Voile's newest release, straight from its repo.
-voile=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/Zagrios/Voile/releases/latest)
-voile=${voile##*/}
+# Voile v26.3.0-16 is the release the patches below were built and tried on. PATCHES.md says when to stop pinning it.
+voile=v26.3.0-16
+tmp=$(mktemp -d "$support/download.XXXXXX")
+trap 'rm -rf "$tmp"' EXIT
 if [ ! -d "$support/voile-$voile" ]; then
-    tmp=$(mktemp -d "$support/download.XXXXXX")
-    trap 'rm -rf "$tmp"' EXIT
     url=https://github.com/Zagrios/Voile/releases/download/$voile/voile-$voile.tar.xz
     curl -fSL --progress-bar "$url" -o "$tmp/voile-$voile.tar.xz"
     curl -fsSL "$url.sha256" -o "$tmp/voile.sha256"
     (cd "$tmp" && shasum -a 256 -c voile.sha256)
     tar -xJf "$tmp/voile-$voile.tar.xz" -C "$tmp"
     mv "$tmp/voile-$voile" "$support/voile-$voile"
+fi
+
+# Microphone input and a render-server crash fix that Voile has not merged yet: three files laid over the runtime.
+# The originals stay beside them as .orig.
+url=https://github.com/LaganYT/Passport/releases/download/v0.1.1/passport-patches.tar.xz
+linux="$support/voile-$voile/linux"
+curl -fsSL "$url.sha256" -o "$tmp/patches.sha256"
+if [ "$(cat "$linux/.passport-patches" 2>/dev/null)" != "$(cat "$tmp/patches.sha256")" ]; then
+    curl -fSL --progress-bar "$url" -o "$tmp/passport-patches.tar.xz"
+    (cd "$tmp" && shasum -a 256 -c patches.sha256)
+    for file in $(tar -tJf "$tmp/passport-patches.tar.xz"); do
+        [ -e "$linux/$file.orig" ] || cp -p "$linux/$file" "$linux/$file.orig"
+    done
+    tar -xJf "$tmp/passport-patches.tar.xz" -C "$linux"
+    cp "$tmp/patches.sha256" "$linux/.passport-patches"
 fi
 ln -sfn "voile-$voile/linux" "$support/runtime"
 

@@ -31,7 +31,7 @@ You need a Mac with Apple silicon and Steam for macOS in `/Applications`.
 3. Quit Steam and press Install.
 4. Start Steam, open a game's Properties, then Compatibility, and pick "Passport (Linux engine)".
 
-Install downloads Voile and Valve's Linux steamclient, adds the hook to Steam.app and signs it
+Install downloads Voile (v26.3.0-16, with a few fixes that are not in a Voile release yet; see [PATCHES.md](PATCHES.md)) and Valve's Linux steamclient, adds the hook to Steam.app and signs it
 again. macOS then asks for Steam's input permissions again. Uninstall puts Steam.app back.
 
 A game's first launch builds its prefix, which takes about a minute. `passport-run.log` in the game's `compatdata`
