@@ -36,6 +36,10 @@ fail() {
 [ -x "$runtime/engine/fexdarwin-run" ] || fail "The Voile runtime is not installed. Run install.sh again."
 [ $# -gt 0 ] || fail "Steam gave no program to run."
 
+# With no usable IPv6 route, a game's connect to an IPv6 address never fails: VRChat's API tries one first and waits out two
+# 20 s timeouts before falling back to IPv4. Ask the guest's resolver for IPv4 addresses only.
+grep -q 'no-aaaa' "$runtime/root/etc/resolv.conf" || echo 'options no-aaaa' >> "$runtime/root/etc/resolv.conf"
+
 # 0x14c in the PE header is a 32-bit program.
 is_32bit() { [ "$(od -An -tx2 -j$(($(od -An -tu4 -j60 -N4 "$1") + 4)) -N2 "$1" | tr -d ' ')" = 014c ]; }
 
@@ -58,6 +62,16 @@ fi
 exe=$(guest_path "$1") || fail "$1 is outside the game's folder."
 shift
 cwd=$(guest_path "$PWD") || cwd=/opt/game
+
+# The last session outlives its game when Steam never stops it (a crash, or Steam quitting). Its Wine server keeps the
+# prefix, and this launch would join that server and hang before the game starts. End it first; launch.sh ends its
+# guest processes when it gets SIGTERM.
+if read -r old 2>/dev/null < "$home/session.pid" && ps -p "$old" -o command= 2>/dev/null | grep -q 'launch\.sh'; then
+    echo "=== ending the previous session ($old) ==="
+    kill -TERM "$old"
+    for _ in $(seq 1 100); do kill -0 "$old" 2>/dev/null || break; sleep 0.1; done
+fi
+echo $$ > "$home/session.pid"
 
 # lsteamclient loads the Linux steamclient that .steam/sdk64 leads to; the guest sees the link's target in /opt/steam.
 "$tool/steamclient.sh" || echo "=== passport: the Linux steamclient may not match this Steam ==="
